@@ -1,4 +1,7 @@
-To run the project:
-* add required environment keys
-* ```pip install```
-* ```python agent.py```
+# To run the project:
+### Add required environemnt keys
+```
+python -m venv venv
+source venv/bin/activate # or windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
