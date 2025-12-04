@@ -12,11 +12,9 @@ api_key = os.getenv("OPENAI_API_KEY")
 llm = ChatOpenAI(model="gpt-4o", temperature=0, api_key=api_key)
 model_with_tools = llm.bind_tools([get_movie_information, get_movie_plot, get_movies])
 
-# Token counter
 encoder = tiktoken.encoding_for_model("gpt-4o")
 
 def count_tokens(messages):
-    """Count approximate tokens in message list."""
     total = 0
     for msg in messages:
         if hasattr(msg, 'content') and msg.content:
@@ -24,7 +22,6 @@ def count_tokens(messages):
     return total
 
 def summarize_conversation(messages_to_summarize):
-    """Summarize a list of messages into a single summary."""
     conversation_text = ""
     for msg in messages_to_summarize:
         if isinstance(msg, HumanMessage):
@@ -32,7 +29,7 @@ def summarize_conversation(messages_to_summarize):
         elif isinstance(msg, AIMessage) and msg.content:
             conversation_text += f"Assistant: {msg.content}\n"
         elif isinstance(msg, ToolMessage):
-            conversation_text += f"Tool Result: {msg.content[:200]}...\n"  # Truncate tool results
+            conversation_text += f"Tool Result: {msg.content[:200]}...\n"
     
     summary_prompt = f"""Summarize this conversation concisely, preserving key facts, user preferences, and important details that might be needed for future questions:
 
@@ -44,16 +41,14 @@ Summary:"""
     return summary_response.content
 
 def maybe_summarize(messages, token_limit=500):
-    """Check token count and summarize if over limit."""
     conversation_messages = messages[1:]
     token_count = count_tokens(conversation_messages)
     
-    print(f"  [Token count: {token_count}]")
+    print(f"[Token count: {token_count}]")
     
     if token_count > token_limit and len(conversation_messages) > 4:
-        print("  [Summarizing conversation to save tokens...]")
-        
-        # Filter out tool-related messages (they break if orphaned)
+        print("[Summarizing conversation to save tokens...]")
+
         clean_messages = []
         for msg in conversation_messages:
             if isinstance(msg, ToolMessage):
@@ -63,7 +58,7 @@ def maybe_summarize(messages, token_limit=500):
             clean_messages.append(msg)
         
         if len(clean_messages) <= 4:
-            return messages  # Not enough to summarize
+            return messages
         
         messages_to_keep = clean_messages[-4:]
         messages_to_summarize = clean_messages[:-4]
@@ -78,7 +73,6 @@ def maybe_summarize(messages, token_limit=500):
     
     return messages
 
-# Initialize conversation with system message
 messages = [system_message]
 
 print("Movie Assistant (type 'quit' or 'exit' to stop)")
@@ -99,9 +93,6 @@ while True:
         response = model_with_tools.invoke(messages)
         messages.append(response)
         
-        print(f"  [DEBUG] tool_calls: {response.tool_calls}")
-        print(f"  [DEBUG] content: '{response.content}'")
-        
         if not response.tool_calls:
             if response.content:
                 print(f"\nAssistant: {response.content}")
@@ -114,7 +105,7 @@ while True:
             break
         
         for tool_call in response.tool_calls:
-            print(f"  [Calling tool: {tool_call['name']}]")
+            print(f"[Calling tool: {tool_call['name']}]")
             name = tool_call["name"]
             
             if name == 'get_movies':
