@@ -15,8 +15,11 @@ def get_movie_information(title: str) -> dict:
   Returns:
     dict: Full movie information(Year, Plot, Genre, Rate etc)
   """
-  response = requests.get(f"http://www.omdbapi.com/?t={title}&apikey={omdb_api_key}")
-  return response.json()
+  try:
+    response = requests.get(f"http://www.omdbapi.com/?t={title}&apikey={omdb_api_key}")
+    return response.json()
+  except:
+    print("Could not load full movie information")
   
 
 @tool
@@ -27,8 +30,11 @@ def get_movies(title: str) -> dict:
   Returns:
     dict: List of movies that match given title
   """
-  response = requests.get(f"http://www.omdbapi.com/?s={title}&apikey={omdb_api_key}")
-  return response.json()
+  try:
+    response = requests.get(f"http://www.omdbapi.com/?s={title}&apikey={omdb_api_key}")
+    return response.json()
+  except:
+    print("Could not get movies")
 
 @tool
 def get_movie_plot(title: str) -> str:
@@ -38,6 +44,9 @@ def get_movie_plot(title: str) -> str:
   Returns:
     str: Full movie plot
   """
-  response = requests.get(f"http://www.omdbapi.com/?t={title}&apikey={omdb_api_key}")
-  return response.json()["Plot"]
+  try:
+    response = requests.get(f"http://www.omdbapi.com/?t={title}&apikey={omdb_api_key}")
+    return response.json()["Plot"]
+  except:
+    print("Could not get movie plot")
 
