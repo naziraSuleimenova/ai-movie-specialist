@@ -121,5 +121,4 @@ while True:
             )
             messages.append(tool_message)
     
-    # Summarize AFTER the full exchange is complete
     messages = maybe_summarize(messages, token_limit=4000)
