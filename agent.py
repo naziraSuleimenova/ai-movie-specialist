@@ -43,25 +43,33 @@ Summary:"""
     summary_response = llm.invoke([HumanMessage(content=summary_prompt)])
     return summary_response.content
 
-def maybe_summarize(messages, token_limit=50):
+def maybe_summarize(messages, token_limit=500):
     """Check token count and summarize if over limit."""
-    # Don't count system message
     conversation_messages = messages[1:]
     token_count = count_tokens(conversation_messages)
     
     print(f"  [Token count: {token_count}]")
     
-    if token_count > token_limit and len(conversation_messages) > 2:
+    if token_count > token_limit and len(conversation_messages) > 4:
         print("  [Summarizing conversation to save tokens...]")
         
-        # Keep the most recent exchange (last 2-4 messages)
-        messages_to_keep = conversation_messages[-4:]
-        messages_to_summarize = conversation_messages[:-4]
+        # Filter out tool-related messages (they break if orphaned)
+        clean_messages = []
+        for msg in conversation_messages:
+            if isinstance(msg, ToolMessage):
+                continue
+            if isinstance(msg, AIMessage) and msg.tool_calls:
+                continue
+            clean_messages.append(msg)
+        
+        if len(clean_messages) <= 4:
+            return messages  # Not enough to summarize
+        
+        messages_to_keep = clean_messages[-4:]
+        messages_to_summarize = clean_messages[:-4]
         
         if messages_to_summarize:
             summary = summarize_conversation(messages_to_summarize)
-            
-            # Rebuild messages: system + summary + recent messages
             summary_message = SystemMessage(content=f"Previous conversation summary: {summary}")
             new_messages = [messages[0], summary_message] + messages_to_keep
             
@@ -75,7 +83,6 @@ messages = [system_message]
 
 print("Movie Assistant (type 'quit' or 'exit' to stop)")
 print("-" * 50)
-
 while True:
     user_input = input("\nYou: ").strip()
     
@@ -88,12 +95,19 @@ while True:
     
     messages.append(HumanMessage(content=user_input))
     
-    # Check if we need to summarize
-    messages = maybe_summarize(messages, token_limit=500)
-    
     while True:
         response = model_with_tools.invoke(messages)
         messages.append(response)
+        
+        print(f"  [DEBUG] tool_calls: {response.tool_calls}")
+        print(f"  [DEBUG] content: '{response.content}'")
+        
+        if not response.tool_calls:
+            if response.content:
+                print(f"\nAssistant: {response.content}")
+            else:
+                print("\nAssistant: [No response generated]")
+            break
         
         if not response.tool_calls:
             print(f"\nAssistant: {response.content}")
@@ -115,3 +129,6 @@ while True:
                 tool_call_id=tool_call["id"]
             )
             messages.append(tool_message)
+    
+    # Summarize AFTER the full exchange is complete
+    messages = maybe_summarize(messages, token_limit=4000)
